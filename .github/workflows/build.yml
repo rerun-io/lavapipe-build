@@ -41,6 +41,22 @@ jobs:
           sudo ln -sf /opt/homebrew/lib/libvulkan.dylib /usr/local/lib/libvulkan.dylib
           sudo ln -sf /opt/homebrew/lib/libvulkan.1.dylib /usr/local/lib/libvulkan.1.dylib
 
+      - name: Fix ICD JSON library path
+        run: |
+          # The relative path ../../lib/... doesn't work with macOS dlopen.
+          # Rewrite to absolute path for CI.
+          python3 -c "
+          import json
+          icd = '${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json'
+          with open(icd) as f:
+              data = json.load(f)
+          data['ICD']['library_path'] = '${{ github.workspace }}/lavapipe-macos-arm64/lib/libvulkan_lvp.dylib'
+          with open(icd, 'w') as f:
+              json.dump(data, f, indent=4)
+          "
+          echo "Updated ICD JSON:"
+          cat ${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json
+
       - name: Verify Vulkan setup
         env:
           VK_DRIVER_FILES: ${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json
