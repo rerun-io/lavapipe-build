@@ -60,6 +60,18 @@ async fn render_triangle() -> Vec<u8> {
         "Using adapter: {} (backend: {:?}, type: {:?})",
         info.name, info.backend, info.device_type
     );
+    assert_eq!(
+        info.backend,
+        wgpu::Backend::Vulkan,
+        "Expected Vulkan backend, got {:?}",
+        info.backend
+    );
+    assert_eq!(
+        info.device_type,
+        wgpu::DeviceType::Cpu,
+        "Expected software renderer (Cpu), got {:?}",
+        info.device_type
+    );
 
     // Request device
     let (device, queue) = adapter
