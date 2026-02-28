@@ -36,9 +36,12 @@ fn main() {
 }
 
 async fn render_triangle() -> Vec<u8> {
-    // Create wgpu instance with Vulkan backend
+    // Create wgpu instance with Vulkan backend.
+    // Use empty flags to avoid portability enumeration flags that conflict
+    // with lavapipe (a full Vulkan driver, not a portability subset).
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
         backends: wgpu::Backends::VULKAN,
+        flags: wgpu::InstanceFlags::empty(),
         ..Default::default()
     });
 

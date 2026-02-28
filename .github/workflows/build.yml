@@ -33,24 +33,21 @@ jobs:
       - name: Extract lavapipe
         run: tar xzf lavapipe-macos-arm64.tar.gz
 
-      - name: Install Vulkan loader
-        run: brew install vulkan-loader
+      - name: Install lavapipe runtime dependencies
+        run: brew install vulkan-loader llvm zstd spirv-tools
 
       - name: Verify Vulkan setup
         env:
           VK_DRIVER_FILES: ${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json
-          VK_LOADER_DRIVERS_SELECT: lvp
-          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
         run: |
-          echo "=== Checking Vulkan loader ==="
-          ls -la /opt/homebrew/lib/libvulkan* || echo "No libvulkan in /opt/homebrew/lib"
-          ls -la /usr/local/lib/libvulkan* 2>/dev/null || echo "No libvulkan in /usr/local/lib"
-          echo "=== Checking ICD JSON ==="
-          cat $VK_DRIVER_FILES
-          echo "=== Checking lavapipe dylib ==="
+          echo "=== Lavapipe lib contents ==="
           ls -la ${{ github.workspace }}/lavapipe-macos-arm64/lib/
-          echo "=== Checking otool ==="
+          echo "=== Dylib dependencies ==="
           otool -L ${{ github.workspace }}/lavapipe-macos-arm64/lib/libvulkan_lvp.dylib
+          echo "=== Checking deps exist ==="
+          ls -la /opt/homebrew/opt/llvm/lib/libLLVM.dylib
+          ls -la /opt/homebrew/opt/zstd/lib/libzstd.1.dylib
+          ls -la /opt/homebrew/opt/spirv-tools/lib/libSPIRV-Tools.dylib
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -63,8 +60,7 @@ jobs:
         working-directory: test-wgpu-triangle
         env:
           VK_DRIVER_FILES: ${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json
-          VK_LOADER_DRIVERS_SELECT: lvp
-          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+          VK_LOADER_DEBUG: all
           RUST_LOG: wgpu_hal=debug,wgpu_core=debug
         run: cargo run --release -- generate
 
