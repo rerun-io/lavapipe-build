@@ -2,11 +2,7 @@ name: Build Lavapipe
 
 on:
   push:
-    tags:
-      - 'v*'
-
-permissions:
-  contents: write
+  pull_request:
 
 jobs:
   build:
@@ -16,6 +12,24 @@ jobs:
 
       - name: Build lavapipe
         run: ./build.sh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lavapipe-macos-arm64
+          path: lavapipe-macos-arm64.tar.gz
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lavapipe-macos-arm64
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
