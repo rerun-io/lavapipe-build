@@ -1,0 +1,21 @@
+name: Build Lavapipe
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build lavapipe
+        run: ./build.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: lavapipe-macos-arm64.tar.gz
+          generate_release_notes: true
