@@ -36,6 +36,22 @@ jobs:
       - name: Install Vulkan loader
         run: brew install vulkan-loader
 
+      - name: Verify Vulkan setup
+        env:
+          VK_DRIVER_FILES: ${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json
+          VK_LOADER_DRIVERS_SELECT: lvp
+          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+        run: |
+          echo "=== Checking Vulkan loader ==="
+          ls -la /opt/homebrew/lib/libvulkan* || echo "No libvulkan in /opt/homebrew/lib"
+          ls -la /usr/local/lib/libvulkan* 2>/dev/null || echo "No libvulkan in /usr/local/lib"
+          echo "=== Checking ICD JSON ==="
+          cat $VK_DRIVER_FILES
+          echo "=== Checking lavapipe dylib ==="
+          ls -la ${{ github.workspace }}/lavapipe-macos-arm64/lib/
+          echo "=== Checking otool ==="
+          otool -L ${{ github.workspace }}/lavapipe-macos-arm64/lib/libvulkan_lvp.dylib
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -49,6 +65,7 @@ jobs:
           VK_DRIVER_FILES: ${{ github.workspace }}/lavapipe-macos-arm64/share/vulkan/icd.d/lvp_icd.aarch64.json
           VK_LOADER_DRIVERS_SELECT: lvp
           DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+          RUST_LOG: wgpu_hal=debug,wgpu_core=debug
         run: cargo run --release -- generate
 
       - name: Upload test output

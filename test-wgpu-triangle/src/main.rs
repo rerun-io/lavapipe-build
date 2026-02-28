@@ -47,7 +47,7 @@ async fn render_triangle() -> Vec<u8> {
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::None,
             compatible_surface: None,
-            force_fallback_adapter: true,
+            force_fallback_adapter: false,
         })
         .await
         .expect("Failed to find a Vulkan adapter. Is VK_DRIVER_FILES set and lavapipe available?");
