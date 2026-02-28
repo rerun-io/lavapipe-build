@@ -60,7 +60,7 @@ async fn render_triangle() -> Vec<u8> {
 
     // Request device
     let (device, queue) = adapter
-        .request_device(&wgpu::DeviceDescriptor::default())
+        .request_device(&wgpu::DeviceDescriptor::default(), None)
         .await
         .expect("Failed to create device");
 
