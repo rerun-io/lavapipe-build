@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-wgpu = { version = "24", features = ["vulkan"] }
+wgpu = { version = "24", features = ["vulkan-portability"] }
 pollster = "0.4"
 image = "0.25"
 env_logger = "0.11"
