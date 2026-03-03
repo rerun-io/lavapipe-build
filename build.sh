@@ -9,6 +9,7 @@ VENV_DIR="$WORK_DIR/.venv"
 ARTIFACT_NAME="lavapipe-macos-arm64"
 
 echo "==> Installing Homebrew dependencies"
+brew update
 brew install meson ninja llvm bison flex glslang spirv-tools vulkan-loader vulkan-headers
 
 echo "==> Setting up Python venv"
