@@ -53,67 +53,35 @@ echo "==> Installing to $INSTALL_DIR"
 rm -rf "$INSTALL_DIR"
 ninja -C "$MESA_DIR/build" install
 
-echo "==> Bundling Homebrew dylib dependencies"
-LVP_DYLIB="$INSTALL_DIR/lib/libvulkan_lvp.dylib"
-
-# Dylibs to bundle: source path -> bundled filename
-declare -A DYLIBS=(
-    ["/opt/homebrew/opt/llvm/lib/libLLVM.dylib"]="libLLVM.dylib"
-    ["/opt/homebrew/opt/zstd/lib/libzstd.1.dylib"]="libzstd.1.dylib"
-    ["/opt/homebrew/opt/spirv-tools/lib/libSPIRV-Tools.dylib"]="libSPIRV-Tools.dylib"
-)
-
-for src in "${!DYLIBS[@]}"; do
-    dst="${DYLIBS[$src]}"
-    echo "  Copying $src -> lib/$dst"
-    cp "$src" "$INSTALL_DIR/lib/$dst"
-    chmod 644 "$INSTALL_DIR/lib/$dst"
-done
-
-# Rewrite references in libvulkan_lvp.dylib
-for src in "${!DYLIBS[@]}"; do
-    dst="${DYLIBS[$src]}"
-    echo "  Fixing reference: $src -> @loader_path/$dst"
-    install_name_tool -change "$src" "@loader_path/$dst" "$LVP_DYLIB"
-done
-
-# Also fix cross-references between bundled dylibs (e.g., libLLVM may reference libzstd)
-for lib in "$INSTALL_DIR/lib"/lib{LLVM,zstd.1,SPIRV-Tools}.dylib; do
-    for src in "${!DYLIBS[@]}"; do
-        dst="${DYLIBS[$src]}"
-        # Only change if the reference exists (ignore errors)
-        install_name_tool -change "$src" "@loader_path/$dst" "$lib" 2>/dev/null || true
-    done
-done
-
-echo "==> Verifying dylib references"
-otool -L "$LVP_DYLIB"
-
 echo "==> Rewriting ICD JSON to use relative library_path"
 ICD_JSON="$INSTALL_DIR/share/vulkan/icd.d/lvp_icd.aarch64.json"
 python3 -c "
-import json, sys
+import json
 with open('$ICD_JSON') as f:
     data = json.load(f)
-data['ICD']['library_path'] = '../../lib/libvulkan_lvp.dylib'
+data['ICD']['library_path'] = './libvulkan_lvp.dylib'
 with open('$ICD_JSON', 'w') as f:
     json.dump(data, f, indent=4)
     f.write('\n')
 "
-echo "  ICD JSON:"
-cat "$ICD_JSON"
 
 echo "==> Creating tarball"
+STAGING_DIR="$WORK_DIR/$ARTIFACT_NAME"
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"
+cp "$INSTALL_DIR/lib/libvulkan_lvp.dylib" "$STAGING_DIR/"
+cp "$ICD_JSON" "$STAGING_DIR/"
+echo "  Contents:"
+ls -la "$STAGING_DIR"
+echo "  ICD JSON:"
+cat "$STAGING_DIR/lvp_icd.aarch64.json"
 cd "$WORK_DIR"
-# The tarball contains lib/ and share/ directories under a top-level folder
-mv install "$ARTIFACT_NAME"
 tar czf "$SCRIPT_DIR/$ARTIFACT_NAME.tar.gz" "$ARTIFACT_NAME"
-mv "$ARTIFACT_NAME" install
 
 echo ""
 echo "==> Done! Artifact: $SCRIPT_DIR/$ARTIFACT_NAME.tar.gz"
 echo ""
 echo "To use:"
 echo "  tar xzf $ARTIFACT_NAME.tar.gz"
-echo "  export VK_DRIVER_FILES=\$(pwd)/$ARTIFACT_NAME/share/vulkan/icd.d/lvp_icd.aarch64.json"
+echo "  export VK_DRIVER_FILES=\$(pwd)/$ARTIFACT_NAME/lvp_icd.aarch64.json"
 echo "  vulkaninfo --summary"
