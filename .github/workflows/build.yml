@@ -3,7 +3,9 @@ name: Build Lavapipe
 on:
   push:
     branches:
-      - "main"    
+      - "main"
+    tags:
+      - "v*"
   pull_request:
 
 jobs:
