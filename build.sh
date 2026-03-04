@@ -10,7 +10,7 @@ ARTIFACT_NAME="lavapipe-macos-arm64"
 
 echo "==> Installing Homebrew dependencies"
 brew update
-brew install meson ninja llvm bison flex glslang spirv-tools vulkan-loader vulkan-headers
+brew install meson ninja llvm bison flex glslang spirv-tools vulkan-loader vulkan-headers zstd
 
 echo "==> Setting up Python venv"
 python3 -m venv "$VENV_DIR"
@@ -30,14 +30,17 @@ INI
 
 echo "==> Configuring Mesa with meson"
 export PATH="/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
+export LIBRARY_PATH="/opt/homebrew/lib:${LIBRARY_PATH:-}"
 
 meson setup "$MESA_DIR/build" "$MESA_DIR" \
     --native-file "$MESA_DIR/native.ini" \
+    --prefer-static \
     -Dprefix="$INSTALL_DIR" \
     -Dbuildtype=release \
     -Dgallium-drivers=llvmpipe \
     -Dvulkan-drivers=swrast \
     -Dllvm=enabled \
+    -Dshared-llvm=disabled \
     -Dplatforms= \
     -Dglx=disabled \
     -Dgbm=disabled \
@@ -66,12 +69,29 @@ with open('$ICD_JSON', 'w') as f:
     f.write('\n')
 "
 
-echo "==> Creating tarball"
+echo "==> Bundling Homebrew dependencies and rewriting paths"
 STAGING_DIR="$WORK_DIR/$ARTIFACT_NAME"
 rm -rf "$STAGING_DIR"
 mkdir -p "$STAGING_DIR"
 cp "$INSTALL_DIR/lib/libvulkan_lvp.dylib" "$STAGING_DIR/"
 cp "$ICD_JSON" "$STAGING_DIR/"
+
+# Bundle non-system dynamic dependencies and rewrite paths to @loader_path
+for dep in $(otool -L "$STAGING_DIR/libvulkan_lvp.dylib" | awk '/\/opt\/homebrew/{print $1}'); do
+    dep_name=$(basename "$dep")
+    echo "  Bundling $dep_name"
+    cp "$dep" "$STAGING_DIR/"
+    chmod u+w "$STAGING_DIR/$dep_name"
+    install_name_tool -change "$dep" "@loader_path/$dep_name" "$STAGING_DIR/libvulkan_lvp.dylib"
+done
+
+echo "==> Verifying no Homebrew dynamic dependencies"
+if otool -L "$STAGING_DIR/libvulkan_lvp.dylib" | grep -q '/opt/homebrew'; then
+    echo "ERROR: Found Homebrew dynamic dependencies:"
+    otool -L "$STAGING_DIR/libvulkan_lvp.dylib"
+    exit 1
+fi
+otool -L "$STAGING_DIR/libvulkan_lvp.dylib"
 echo "  Contents:"
 ls -la "$STAGING_DIR"
 echo "  ICD JSON:"
