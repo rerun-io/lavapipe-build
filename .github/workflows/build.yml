@@ -41,10 +41,10 @@ jobs:
         run: |
           brew update
           brew install vulkan-loader llvm zstd spirv-tools
-          # Symlink Vulkan loader to a path dlopen searches by default
-          sudo mkdir -p /usr/local/lib
-          sudo ln -sf /opt/homebrew/lib/libvulkan.dylib /usr/local/lib/libvulkan.dylib
-          sudo ln -sf /opt/homebrew/lib/libvulkan.1.dylib /usr/local/lib/libvulkan.1.dylib
+          # # Symlink Vulkan loader to a path dlopen searches by default
+          # sudo mkdir -p /usr/local/lib
+          # sudo ln -sf /opt/homebrew/lib/libvulkan.dylib /usr/local/lib/libvulkan.dylib
+          # sudo ln -sf /opt/homebrew/lib/libvulkan.1.dylib /usr/local/lib/libvulkan.1.dylib
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
